@@ -28,7 +28,7 @@ After the plugin is available in ChatGPT desktop:
 
 Do not paste a Canvas token into chat. If the token expires or Canvas rejects it, the saved copy is cleared and the next Canvas request prompts again.
 
-If ChatGPT says **“MCP tool call requires approval, but approval policy is never”**, change that chat's **Permissions** control below the message box to **Ask for approval**, then try again. This error occurs before Canvas is contacted; it does not mean the GitHub marketplace URL or Canvas token is wrong.
+If ChatGPT says **“MCP tool call requires approval, but approval policy is never”**, refresh this marketplace, fully reopen ChatGPT desktop, and retry in a new chat. The error occurs before Canvas is contacted; it does not mean the GitHub marketplace URL or Canvas token is wrong. Version 0.1.4 labels course lookups as read-only so they do not require a write-tool approval. If the error persists, report the exact message and plugin version to the maintainer.
 
 ## Limits
 
