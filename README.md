@@ -9,7 +9,17 @@ This repository has two Canvas plugins for UW-Whitewater students. Both connect 
 
 Both versions prompt for the token on your own computer and save it with Windows DPAPI or macOS Keychain. Each plugin has its own saved token and write opt-in. Canvas information returned to either app is processed in that conversation. Neither plugin is an official Canvas or UW-Whitewater product.
 
-## uww-canvas
+## ChatGPT desktop setup
+
+Add this GitHub web address as a custom plugin marketplace in ChatGPT desktop:
+
+**https://github.com/jkatz015/uww-student-plugins**
+
+Choose **UW-Whitewater Canvas** (`uww-canvas-chatgpt`) and follow the [ChatGPT setup instructions](plugins/uww-canvas-chatgpt/README.md). GitHub installation and API-key entry have been confirmed in Jonathan's Windows ChatGPT desktop setup. Each person adds the marketplace in their own account.
+
+The ChatGPT plugin includes reading, downloading, submitting assignments, and posting replies. Its tools are allowed by default in the ChatGPT package; submissions and posts still require the existing on-screen confirmations. A stricter host policy can override the package default.
+
+## Claude Desktop setup
 
 Connects Claude Desktop to your UW-Whitewater Canvas account. Ask Claude about your courses, upcoming due dates, grades, assignment instructions, modules, discussions and course files.
 
@@ -17,7 +27,7 @@ Connects Claude Desktop to your UW-Whitewater Canvas account. Ask Claude about y
 - Read-only by default. If you turn on submitting and posting, every submission or post still opens a box on your screen, and nothing goes to Canvas unless you click Yes.
 - When Claude reads your Canvas information to answer you, that information is sent to Claude, like anything else you share in a chat.
 
-## Setup (one time, about 5 minutes)
+### Install in Claude (one time, about 5 minutes)
 
 1. Install Node.js. On Windows, open PowerShell and run:
    `winget install OpenJS.NodeJS.LTS`
@@ -29,14 +39,14 @@ Connects Claude Desktop to your UW-Whitewater Canvas account. Ask Claude about y
 
 Never paste your token into the chat.
 
-## Getting updates
+### Getting updates in Claude
 
 On the Plugins page, open this marketplace and turn on **Sync automatically**, or click **Check for updates** now and then.
 
-## When your token expires
+### When your Claude plugin token expires
 
 Canvas will reject it and the plugin will forget it. Create a new token in Canvas, ask Claude anything about Canvas, and paste the new token into the pop-up box.
 
-## Having trouble?
+### Having trouble in Claude?
 
 Ask Claude for your "Canvas setup status" and send the result to Jonathan. It shows what is going on without revealing your token.

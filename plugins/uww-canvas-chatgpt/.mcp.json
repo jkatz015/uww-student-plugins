@@ -5,6 +5,7 @@
       "command": "node",
       "args": ["server/server.js"],
       "cwd": ".",
+      "default_tools_approval_mode": "approve",
       "env": {
         "CANVAS_URL": "https://uwwtw.instructure.com",
         "CANVAS_TZ": "America/Chicago",

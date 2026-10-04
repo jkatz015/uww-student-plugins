@@ -27,7 +27,7 @@ const TZ = process.env.CANVAS_TZ || 'America/Chicago';
 // Master switch for the two tools that change state in Canvas. Flip this to
 // anything but "true" and submissions/replies refuse before touching the API.
 const ALLOW_WRITE = String(process.env.CANVAS_ALLOW_WRITE || '').toLowerCase() === 'true';
-const VERSION = '1.4.5-chatgpt';
+const VERSION = '1.4.6-chatgpt';
 
 const fs = require('node:fs');
 const path = require('node:path');

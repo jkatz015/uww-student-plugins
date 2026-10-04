@@ -1,37 +1,83 @@
 # UW-Whitewater Canvas for ChatGPT desktop
 
-This plugin packages the same Canvas MCP tools as the Claude Desktop plugin for ChatGPT desktop Work with Local selected. It runs on each student's own Windows or Mac computer. Node.js 18 or later is required. Each student uses their own Canvas personal access token.
+Connect ChatGPT desktop to your UW-Whitewater Canvas account using your own Canvas API key (personal access token). The plugin runs on your Windows or Mac computer. It includes course lookups, file downloads, assignment submissions, and discussion replies.
 
-The distributable plugin is this folder: root `plugin.json` identifies it, root `mcp.json` starts the local Canvas MCP server, and `skills/` contains setup guidance. `.codex-plugin/plugin.json` and `.mcp.json` remain as compatibility files for clients that use the older ChatGPT plugin layout. The repository's `.agents/plugins/marketplace.json` lists this folder as a GitHub marketplace entry. Packaging and listing it in GitHub do not publish it to ChatGPT's universal public Plugins Directory.
+## Install from GitHub
 
-## What it does
+1. Install Node.js using the LTS installer from [nodejs.org](https://nodejs.org/) if it is not already installed. Then fully quit and reopen ChatGPT desktop so it can find Node.js.
+2. In ChatGPT desktop's Plugins area, use the option to add a custom plugin marketplace from GitHub and enter this repository web address:
 
-- Read courses, assignments, instructions, rubrics, due dates, grades, discussions, modules, and course files.
-- Download selected course files to a folder you choose.
-- Submit assignments and post discussion replies after enabling writes. Every such action still needs a separate on-screen confirmation.
-- Show a setup-status report that never prints the token.
+   **https://github.com/jkatz015/uww-student-plugins**
 
-The local prompt is titled **Canvas for ChatGPT**. On Windows, the token is stored encrypted with DPAPI for that Windows login. On Mac, it is stored in Keychain. The token is never entered in chat or committed to this repository. This plugin keeps its own token and write opt-in, separate from the Claude plugin.
+3. Select **UW-Whitewater Canvas** (`uww-canvas-chatgpt`) from **UW-Whitewater Student Plugins** and install it.
+4. Start a new chat in **Work > Local** so the plugin runs on your computer.
 
-## Availability to classmates
+Jonathan has confirmed GitHub installation and API-key entry in Windows ChatGPT desktop. These steps describe that setup; menu labels and available plugin controls can vary by app version. Each person adds the GitHub marketplace in their own account. Classmates do not need a shared ChatGPT workspace or a WSL command for this installation path.
 
-This GitHub repository is a ChatGPT plugin marketplace source. Registering it on the author's computer does **not** add it to other students' Plugins Directories. There is currently no verified click-only installation path for separate personal ChatGPT accounts from this local marketplace.
+## Connect Canvas
 
-If everyone belongs to the **same managed ChatGPT workspace**, a workspace administrator can import the repository through **Admin > Plugins > Add > Import marketplace**. Enter `https://github.com/jkatz015/uww-student-plugins` as the source and leave Path empty. After the import, eligible classmates can open the workspace's Plugins Directory and install **UW-Whitewater Canvas** there. The administrator must make the plugin available to their roles. The plugin is marked Desktop only because it includes a local MCP server. Each classmate still needs Node.js 18 or later installed through [nodejs.org](https://nodejs.org/) and must use **ChatGPT desktop > Work > Local** for the local prompt and encrypted key storage.
+1. In Canvas, open **Account > Settings > Approved Integrations > + New Access Token**. Set an expiration date and copy the token.
+2. Ask ChatGPT: **“List my Canvas courses.”** A box titled **Canvas for ChatGPT** opens on your screen.
+3. On Windows, click **Paste from clipboard**, check for **“Token entered: N characters”**, and click **Save**. On Mac, paste into the token field and click **Save**.
+4. Ask **“List my Canvas courses”** again after saving.
 
-For students with **separate personal ChatGPT accounts** who should find the plugin in the public Plugins Directory without a setup command, this local version cannot be published as-is. That requires a hosted HTTPS MCP service, a user authentication flow, and OpenAI's public plugin submission and review. The hosted version would need a different encrypted token store because Windows DPAPI and macOS Keychain run on each student's computer.
+Enter the token in the local box, never in chat. Windows stores it encrypted for your Windows login using DPAPI; Mac uses Keychain. The ChatGPT plugin has its own saved token, separate from the Claude plugin. If Canvas returns an authentication error (401), the plugin clears the saved token and prompts again on the next request.
 
-After the plugin is available in ChatGPT desktop:
+## What you can do
 
-1. In Canvas, open **Account > Settings > Approved Integrations > + New Access Token**, set an expiration date, and copy the token.
-2. Ask ChatGPT to “list my Canvas courses.” In the **Canvas for ChatGPT** box on your own screen, click **Paste from clipboard** and confirm it says “Token entered: N characters.” Click **Save**, then ask again to load your courses.
+| Task | Example request |
+| --- | --- |
+| Courses | “List my Canvas courses.” |
+| Assignments and deadlines | “What is due in the next two weeks?” |
+| Instructions and rubrics | “Show the instructions and rubric for this assignment.” |
+| Grades | “Show my grades for this course.” |
+| Discussions and announcements | “Show this week's discussion prompt and replies.” |
+| Modules and files | “List the downloadable readings in this course.” |
+| One file | “Download this reading to this folder: …” |
+| Course files | “Show a download plan for this course's module files, then save them to this folder: …” |
+| Assignment submission | “Submit this file to this assignment.” |
+| Discussion reply | “Post this reply to this discussion.” |
+| Connection diagnostics | “Show my Canvas setup status.” |
 
-Do not paste a Canvas token into chat. If the token expires or Canvas rejects it, the saved copy is cleared and the next Canvas request prompts again.
+Downloads save files to a folder you choose on your computer. They do not change Canvas. Existing files are skipped unless you explicitly request replacement. Bulk downloading finds files listed in course modules; it does not export every page, external link, or attachment in the course. ChatGPT should show the bulk-download plan before saving files.
 
-If ChatGPT says **“MCP tool call requires approval, but approval policy is never”**, refresh this marketplace, fully reopen ChatGPT desktop, and retry in a new chat. The error occurs before Canvas is contacted; it does not mean the GitHub marketplace URL or Canvas token is wrong. Version 0.1.4 labels course lookups as read-only so they do not require a write-tool approval. If the error persists, report the exact message and plugin version to the maintainer.
+## Permissions and confirmations
 
-## Limits
+Version **0.1.6** allows all 13 Canvas tools by default at the ChatGPT MCP layer, including downloads, submissions, and discussion replies. Download tools remain correctly marked as writing local files.
 
-This plugin is for ChatGPT desktop Work with Local selected. It has not been tested in the desktop UI yet. Work Cloud and ChatGPT web cannot display this local token prompt. This repository does not provide a hosted service. Linux is not supported by this package because its token storage and on-screen confirmation are implemented for Windows and macOS only.
+The existing Canvas confirmation behavior is preserved:
 
-The plugin connects specifically to `https://uwwtw.instructure.com` and renders dates in `America/Chicago`. Canvas course content returned to ChatGPT is processed as part of the conversation. A Canvas token may have broad account permissions, so revoke it in Canvas when you stop using the plugin.
+- The first submission or discussion post asks whether to turn submitting/posting on.
+- Every submission or post then shows its own confirmation box with the action details. Nothing is submitted or posted unless you click **Yes**.
+- After enabling submitting/posting, later actions require the individual confirmation only. **No**, **Cancel**, or a timeout stops the action.
+
+ChatGPT should show the intended content and destination in chat before calling a submission or posting tool. A stricter ChatGPT host policy can still override the package's permission default.
+
+## Updates and troubleshooting
+
+After updating the GitHub marketplace, fully quit and reopen ChatGPT desktop and start a new chat. Ask for **“Canvas setup status”** to check the running connector version. Package 0.1.6 contains connector version `1.4.6-chatgpt`.
+
+- **“MCP tool call requires approval, but approval policy is never”:** ChatGPT blocked the call before the plugin ran. Update to 0.1.6 and start a new chat. If it persists, send Jonathan the exact error and setup-status report so the host policy can be checked. Replacing the Canvas token does not fix this error.
+- **No Canvas tools:** check that the plugin is installed and enabled, Node.js is installed, and the chat uses local execution.
+- **No token box:** check behind other windows and on the taskbar. Ask for setup status before retrying.
+- **Token cannot be pasted:** on Windows use **Paste from clipboard** and check the character count before saving.
+- **Canvas denies access (403):** the connected account cannot access that resource. This differs from ChatGPT blocking the tool.
+
+To change accounts, fully quit ChatGPT first. On Windows, remove `token.dpapi` from the `.canvas-chatgpt` folder in your user folder. On Mac, remove the `uww-canvas-chatgpt` item from Keychain Access. Reopen ChatGPT and connect again. To require the enable-submissions prompt again, remove `allow-write` from `.canvas-chatgpt`.
+
+This package's local prompts and encrypted storage support Windows and macOS. It does not provide a hosted service for web or cloud execution. Dates use Central time. Canvas information returned to ChatGPT becomes part of the conversation. This is not an official Canvas or UW-Whitewater product.
+
+## Maintainer notes
+
+The ChatGPT package uses the supported `.codex-plugin/plugin.json` and `.mcp.json` layout. `.mcp.json` declares `default_tools_approval_mode: "approve"` for this Canvas server. The portable Agent Plugins `mcp.json` schema does not accept this host-specific approval field, so this ChatGPT package uses the compatibility layout intentionally. The repository's `.agents/plugins/marketplace.json` points to this folder.
+
+If a user explicitly wants all Canvas tools allowed and needs a local override, the supported user-config setting is:
+
+```toml
+[plugins."uww-canvas-chatgpt@uww-student-plugins".mcp_servers.uww-canvas]
+default_tools_approval_mode = "approve"
+```
+
+This setting belongs to that person's ChatGPT desktop configuration. A repository push does not edit their local configuration. Do not change global approval policy or label downloads as read-only to fix a host permission error.
+
+Reference: [OpenAI plugin packaging and MCP configuration](https://developers.openai.com/plugins/build/plugins).
