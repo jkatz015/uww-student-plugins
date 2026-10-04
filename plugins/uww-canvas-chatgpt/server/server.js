@@ -15,7 +15,7 @@
  *   CANVAS_URL         e.g. https://uwwtw.instructure.com
  *   CANVAS_TOKEN       a Canvas personal access token (optional in the plugin
  *                      build: if unset, the token is read from
- *                      ~/.canvas-mcp/token, and if that is missing the user is
+ *                      the OS credential store, and if that is missing the user is
  *                      asked for it in a private pop-up box on first use)
  *   CANVAS_TZ          IANA zone for due dates (default America/Chicago)
  *   CANVAS_ALLOW_WRITE "true" pre-enables writes (each still needs an on-screen Yes)
@@ -40,11 +40,10 @@ const { spawn } = require('node:child_process');
 // from storage only this user can read: Windows DPAPI encryption (tied to the
 // user's Windows login) or the macOS Keychain. It is entered in a pop-up box
 // on the user's own screen.
-const STATE_DIR = path.join(os.homedir(), '.canvas-mcp');
+const STATE_DIR = path.join(os.homedir(), '.canvas-chatgpt');
 const TOKEN_DPAPI = path.join(STATE_DIR, 'token.dpapi'); // Windows, encrypted
-const TOKEN_PLAIN = path.join(STATE_DIR, 'token');       // legacy Windows token only
 const WRITE_OPTIN = path.join(STATE_DIR, 'allow-write');  // created only by an on-screen Yes
-const KEYCHAIN = ['-a', 'canvas-mcp', '-s', 'uww-canvas'];
+const KEYCHAIN = ['-a', 'canvas-chatgpt', '-s', 'uww-canvas-chatgpt'];
 let tokenPrompt = null; // shared promise so two calls never open two boxes
 // Setup diagnostics, never containing the token itself.
 const DIAG = { pid: process.pid, started: new Date().toISOString(), popupRuns: 0, lastPopup: 'never opened', lastStore: 'never tried', lastLoad: 'never tried' };
@@ -90,15 +89,6 @@ async function loadToken() {
         DIAG.lastLoad = `decrypt exit code ${r.code}, got ${r.out.trim() ? 'a token' : 'nothing'}${r.err ? ' | ' + r.err.slice(0, 200) : ''}`;
         return r.code === 0 ? r.out.trim() : '';
       }
-      // Migrate a plain-text token left by an older version, then remove it.
-      if (fs.existsSync(TOKEN_PLAIN)) {
-        const t = fs.readFileSync(TOKEN_PLAIN, 'utf8').trim();
-        if (t && await storeToken(t)) {
-          fs.unlinkSync(TOKEN_PLAIN);
-          return t;
-        }
-        return '';
-      }
       DIAG.lastLoad = 'no saved token file';
       return '';
     }
@@ -133,7 +123,7 @@ async function storeToken(t) {
 }
 
 async function clearToken() {
-  for (const f of [TOKEN_DPAPI, TOKEN_PLAIN]) { try { fs.unlinkSync(f); } catch {} }
+  try { fs.unlinkSync(TOKEN_DPAPI); } catch {}
   if (process.platform === 'darwin') await run('security', ['delete-generic-password', ...KEYCHAIN], 10000);
 }
 
@@ -631,7 +621,6 @@ TOOLS.push({
     `Canvas address: ${CANVAS_URL || '(not set)'}`,
     `Token in memory: ${CANVAS_TOKEN ? 'yes' : 'no'}${process.env.CANVAS_TOKEN ? ' (from environment)' : ''}`,
     `Encrypted token file: ${fs.existsSync(TOKEN_DPAPI) ? 'present (' + fs.statSync(TOKEN_DPAPI).size + ' bytes)' : 'absent'}`,
-    `Plain token file: ${fs.existsSync(TOKEN_PLAIN) ? 'present' : 'absent'}`,
     `Token pop-up: opened ${DIAG.popupRuns} time(s) in this process; last: ${DIAG.lastPopup}; open now: ${tokenPrompt ? 'yes' : 'no'}`,
     `Last save: ${DIAG.lastStore}`,
     `Last load: ${DIAG.lastLoad}`,
