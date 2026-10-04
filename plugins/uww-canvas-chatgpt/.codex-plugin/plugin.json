@@ -1,6 +1,6 @@
 {
   "name": "uww-canvas-chatgpt",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Connect ChatGPT desktop Work to UW-Whitewater Canvas with local token prompts and encrypted storage.",
   "author": {
     "name": "Jonathan Katzmark",

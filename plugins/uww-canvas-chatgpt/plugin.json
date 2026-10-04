@@ -1,0 +1,27 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "uww-canvas-chatgpt",
+  "version": "0.1.3",
+  "description": "Connect ChatGPT desktop Work to UW-Whitewater Canvas with local token prompts and encrypted storage.",
+  "author": {
+    "name": "Jonathan Katzmark",
+    "url": "https://github.com/jkatz015"
+  },
+  "homepage": "https://github.com/jkatz015/uww-student-plugins/tree/main/plugins/uww-canvas-chatgpt",
+  "repository": "https://github.com/jkatz015/uww-student-plugins",
+  "keywords": ["canvas", "uw-whitewater", "coursework", "lms"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "UW-Whitewater Canvas",
+        "shortDescription": "Courses, due dates, grades, files, and discussions in ChatGPT desktop.",
+        "longDescription": "Read your UW-Whitewater Canvas coursework in ChatGPT desktop Work with Local selected. A local prompt saves your token with Windows DPAPI or macOS Keychain. Submissions and posts require on-screen confirmation.",
+        "developerName": "Jonathan Katzmark",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://github.com/jkatz015/uww-student-plugins",
+        "defaultPrompt": ["List my Canvas courses.", "What is due next in Canvas?", "Show my Canvas grades."]
+      }
+    }
+  }
+}

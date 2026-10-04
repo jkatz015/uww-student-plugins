@@ -2,6 +2,8 @@
 
 This plugin packages the same Canvas MCP tools as the Claude Desktop plugin for ChatGPT desktop Work with Local selected. It runs on each student's own Windows or Mac computer. Node.js 18 or later is required. Each student uses their own Canvas personal access token.
 
+The distributable plugin is this folder: root `plugin.json` identifies it, root `mcp.json` starts the local Canvas MCP server, and `skills/` contains setup guidance. `.codex-plugin/plugin.json` and `.mcp.json` remain as compatibility files for clients that use the older ChatGPT plugin layout. The repository's `.agents/plugins/marketplace.json` lists this folder as a GitHub marketplace entry. Packaging and listing it in GitHub do not publish it to ChatGPT's universal public Plugins Directory.
+
 ## What it does
 
 - Read courses, assignments, instructions, rubrics, due dates, grades, discussions, modules, and course files.
