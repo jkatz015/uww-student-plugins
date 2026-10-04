@@ -28,6 +28,8 @@ After the plugin is available in ChatGPT desktop:
 
 Do not paste a Canvas token into chat. If the token expires or Canvas rejects it, the saved copy is cleared and the next Canvas request prompts again.
 
+If ChatGPT says **“MCP tool call requires approval, but approval policy is never”**, change that chat's **Permissions** control below the message box to **Ask for approval**, then try again. This error occurs before Canvas is contacted; it does not mean the GitHub marketplace URL or Canvas token is wrong.
+
 ## Limits
 
 This plugin is for ChatGPT desktop Work with Local selected. It has not been tested in the desktop UI yet. Work Cloud and ChatGPT web cannot display this local token prompt. This repository does not provide a hosted service. Linux is not supported by this package because its token storage and on-screen confirmation are implemented for Windows and macOS only.

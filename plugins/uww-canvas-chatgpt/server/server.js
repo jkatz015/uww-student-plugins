@@ -27,7 +27,7 @@ const TZ = process.env.CANVAS_TZ || 'America/Chicago';
 // Master switch for the two tools that change state in Canvas. Flip this to
 // anything but "true" and submissions/replies refuse before touching the API.
 const ALLOW_WRITE = String(process.env.CANVAS_ALLOW_WRITE || '').toLowerCase() === 'true';
-const VERSION = '1.4.3-chatgpt';
+const VERSION = '1.4.4-chatgpt';
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -910,6 +910,26 @@ TOOLS.push(
 
 /* ---------- JSON-RPC / MCP plumbing ---------- */
 
+// Advertise the difference between fetching Canvas information and changing
+// Canvas or local files. Hosts can use these hints when deciding which calls
+// need approval; our own confirmation still gates submissions and replies.
+const READ_ONLY_TOOLS = new Set([
+  'canvas_list_courses',
+  'canvas_list_assignments',
+  'canvas_get_assignment',
+  'canvas_upcoming',
+  'canvas_list_discussions',
+  'canvas_get_discussion',
+  'canvas_get_grades',
+  'canvas_setup_status',
+  'canvas_list_modules',
+]);
+const toolAnnotations = (name) => ({
+  readOnlyHint: READ_ONLY_TOOLS.has(name),
+  destructiveHint: !READ_ONLY_TOOLS.has(name),
+  openWorldHint: false,
+});
+
 const send = (msg) => process.stdout.write(JSON.stringify(msg) + '\n');
 const ok = (id, result) => send({ jsonrpc: '2.0', id, result });
 const err = (id, code, message) => send({ jsonrpc: '2.0', id, error: { code, message } });
@@ -934,7 +954,7 @@ async function handle(msg) {
       return ok(id, {});
 
     case 'tools/list':
-      return ok(id, { tools: TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) });
+      return ok(id, { tools: TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema, annotations: toolAnnotations(name) })) });
 
     case 'tools/call': {
       const tool = TOOLS.find((t) => t.name === params?.name);
