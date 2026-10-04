@@ -1,7 +1,7 @@
 {
   "name": "uww-canvas-chatgpt",
-  "version": "0.1.0",
-  "description": "Connect ChatGPT desktop to UW-Whitewater Canvas with local token prompts and encrypted storage.",
+  "version": "0.1.1",
+  "description": "Connect Codex in ChatGPT desktop to UW-Whitewater Canvas with local token prompts and encrypted storage.",
   "author": {
     "name": "Jonathan Katzmark",
     "url": "https://github.com/jkatz015"
@@ -12,8 +12,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "UW-Whitewater Canvas",
-    "shortDescription": "Courses, due dates, grades, files, and discussions in ChatGPT.",
-    "longDescription": "Read your UW-Whitewater Canvas coursework with your own token. A local prompt saves the token with Windows DPAPI or macOS Keychain. Submissions and posts require on-screen confirmation.",
+    "shortDescription": "Courses, due dates, grades, files, and discussions in desktop Codex.",
+    "longDescription": "Read your UW-Whitewater Canvas coursework in the local Codex experience of ChatGPT desktop. A local prompt saves your token with Windows DPAPI or macOS Keychain. Submissions and posts require on-screen confirmation.",
     "developerName": "Jonathan Katzmark",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],

@@ -1,6 +1,6 @@
 ---
 name: canvas-setup
-description: Set up, test, or troubleshoot the UW-Whitewater Canvas connection in ChatGPT desktop, including a missing or rejected Canvas token.
+description: Set up, test, or troubleshoot the UW-Whitewater Canvas connection in local Codex in ChatGPT desktop, including a missing or rejected Canvas token.
 ---
 
 # Canvas setup and use
@@ -25,7 +25,7 @@ This plugin uses a local MCP server on the student's Windows or Mac computer. Th
 
 ## Troubleshooting
 
-- Missing Canvas tools: verify the plugin is installed and enabled, Node.js is installed, and ChatGPT desktop was fully restarted. Use a local Work session; cloud execution cannot display the local token box.
+- Missing Canvas tools: verify the plugin is installed and enabled, Node.js is installed, and ChatGPT desktop was fully restarted. Use Codex locally in the desktop app; cloud execution cannot display the local token box.
 - No token box: check other windows and taskbar, then call a Canvas tool again. Use `canvas_setup_status` for diagnostic details.
 - Switch accounts: remove the saved `uww-canvas` item in macOS Keychain, or the `.canvas-mcp` folder in the Windows user folder. The Claude and ChatGPT plugins share this local credential store.
 - Stop submitting and posting: remove the `allow-write` file in the `.canvas-mcp` folder.
