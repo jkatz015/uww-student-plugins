@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "uww-canvas": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["server/server.js"],
+      "cwd": ".",
+      "env": {
+        "CANVAS_URL": "https://uwwtw.instructure.com",
+        "CANVAS_TZ": "America/Chicago",
+        "CANVAS_ALLOW_WRITE": "false"
+      }
+    }
+  }
+}

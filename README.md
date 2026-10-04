@@ -1,4 +1,13 @@
-# UW-Whitewater student plugins for Claude
+# UW-Whitewater student plugins for Claude and ChatGPT desktop
+
+This repository has two Canvas plugins for UW-Whitewater students. Both connect to `https://uwwtw.instructure.com`, use each student's own Canvas token, and provide the same Canvas tools. Choose the plugin for your desktop app:
+
+| Desktop app | Plugin | Setup |
+| --- | --- | --- |
+| Claude Desktop | `uww-canvas` | Follow the Claude instructions below. |
+| ChatGPT desktop, local Work mode | `uww-canvas-chatgpt` | [ChatGPT setup](plugins/uww-canvas-chatgpt/README.md). |
+
+Both versions prompt for the token on your own computer and save it with Windows DPAPI or macOS Keychain. If both apps run on the same computer, they share the saved token and write opt-in. Canvas information returned to either app is processed in that conversation. Neither plugin is an official Canvas or UW-Whitewater product.
 
 ## uww-canvas
 
