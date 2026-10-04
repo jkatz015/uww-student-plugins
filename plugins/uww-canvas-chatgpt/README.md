@@ -24,7 +24,7 @@ For students with **separate personal ChatGPT accounts** who should find the plu
 After the plugin is available in ChatGPT desktop:
 
 1. In Canvas, open **Account > Settings > Approved Integrations > + New Access Token**, set an expiration date, and copy the token.
-2. Ask ChatGPT to “list my Canvas courses.” Paste the token into the **Canvas for ChatGPT** box on your own screen and click Save. Ask again to load your courses.
+2. Ask ChatGPT to “list my Canvas courses.” In the **Canvas for ChatGPT** box on your own screen, click **Paste from clipboard** and confirm it says “Token entered: N characters.” Click **Save**, then ask again to load your courses.
 
 Do not paste a Canvas token into chat. If the token expires or Canvas rejects it, the saved copy is cleared and the next Canvas request prompts again.
 

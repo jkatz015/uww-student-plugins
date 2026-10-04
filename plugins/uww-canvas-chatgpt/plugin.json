@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "uww-canvas-chatgpt",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Connect ChatGPT desktop Work to UW-Whitewater Canvas with local token prompts and encrypted storage.",
   "author": {
     "name": "Jonathan Katzmark",

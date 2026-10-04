@@ -27,7 +27,7 @@ const TZ = process.env.CANVAS_TZ || 'America/Chicago';
 // Master switch for the two tools that change state in Canvas. Flip this to
 // anything but "true" and submissions/replies refuse before touching the API.
 const ALLOW_WRITE = String(process.env.CANVAS_ALLOW_WRITE || '').toLowerCase() === 'true';
-const VERSION = '1.4.4-chatgpt';
+const VERSION = '1.4.5-chatgpt';
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -138,26 +138,40 @@ Add-Type -AssemblyName System.Drawing
 $f = New-Object Windows.Forms.Form
 $f.Text = 'Canvas for ChatGPT'; $f.TopMost = $true; $f.StartPosition = 'CenterScreen'
 $f.FormBorderStyle = 'FixedDialog'; $f.MaximizeBox = $false; $f.MinimizeBox = $false
-$f.ClientSize = New-Object Drawing.Size(480,190)
+$f.ClientSize = New-Object Drawing.Size(480,220)
 $l = New-Object Windows.Forms.Label
 $l.Text = '${PROMPT_TEXT}'; $l.SetBounds(12,10,456,40)
 $t = New-Object Windows.Forms.TextBox
-$t.UseSystemPasswordChar = $true; $t.SetBounds(12,56,456,24)
+$t.UseSystemPasswordChar = $true; $t.ShortcutsEnabled = $true; $t.SetBounds(12,56,456,24)
 $c = New-Object Windows.Forms.Label
-$c.Text = 'Click in the box above, then press Ctrl+V (or right-click > Paste).'; $c.SetBounds(12,86,456,20)
+$c.Text = 'Click Paste from clipboard, or click the box and press Ctrl+V.'; $c.SetBounds(12,86,456,20)
+$paste = New-Object Windows.Forms.Button
+$paste.Text = 'Paste from clipboard'; $paste.SetBounds(12,112,160,28)
+$paste.Add_Click({
+  try {
+    if ([Windows.Forms.Clipboard]::ContainsText()) {
+      $t.Text = [Windows.Forms.Clipboard]::GetText()
+      $t.Select($t.TextLength, 0); $t.Focus()
+    } else {
+      $c.Text = 'Clipboard is empty. Copy the token in Canvas, then click Paste.'
+    }
+  } catch {
+    $c.Text = 'Clipboard unavailable. Click the token box and press Ctrl+V.'
+  }
+})
 $show = New-Object Windows.Forms.CheckBox
-$show.Text = 'Show token'; $show.SetBounds(12,110,200,22)
+$show.Text = 'Show token'; $show.SetBounds(184,115,120,22)
 $show.Add_CheckedChanged({ $t.UseSystemPasswordChar = -not $show.Checked })
 $ok = New-Object Windows.Forms.Button
-$ok.Text = 'Save'; $ok.SetBounds(312,146,75,28); $ok.DialogResult = 'OK'; $ok.Enabled = $false
+$ok.Text = 'Save'; $ok.SetBounds(312,176,75,28); $ok.DialogResult = 'OK'; $ok.Enabled = $false
 $cancel = New-Object Windows.Forms.Button
-$cancel.Text = 'Cancel'; $cancel.SetBounds(393,146,75,28); $cancel.DialogResult = 'Cancel'
+$cancel.Text = 'Cancel'; $cancel.SetBounds(393,176,75,28); $cancel.DialogResult = 'Cancel'
 $t.Add_TextChanged({
   $n = $t.Text.Trim().Length
   $ok.Enabled = ($n -gt 0)
-  if ($n -gt 0) { $c.Text = "Token entered: $n characters. Click Save." } else { $c.Text = 'Click in the box above, then press Ctrl+V (or right-click > Paste).' }
+  if ($n -gt 0) { $c.Text = "Token entered: $n characters. Click Save." } else { $c.Text = 'Click Paste from clipboard, or click the box and press Ctrl+V.' }
 })
-$f.Controls.AddRange(@($l,$t,$c,$show,$ok,$cancel)); $f.AcceptButton = $ok; $f.CancelButton = $cancel
+$f.Controls.AddRange(@($l,$t,$c,$paste,$show,$ok,$cancel)); $f.AcceptButton = $ok; $f.CancelButton = $cancel
 $f.ShowInTaskbar = $true
 $f.WindowState = 'Normal'
 $f.ActiveControl = $t
@@ -198,11 +212,11 @@ async function ensureToken() {
       .catch((e) => log('token pop-up failed:', e && e.message))
       .finally(() => { tokenPrompt = null; });
     if (DIAG.emptyPopup) {
-      throw new Error('SETUP NEEDED: the last token box was closed with nothing in it, so no token was saved. A new "Canvas for ChatGPT" box just opened. Click inside the text field, press Ctrl+V, and check that it says "Token entered: N characters" before clicking Save. Then ask again.');
+      throw new Error('SETUP NEEDED: the last token box was closed with nothing in it, so no token was saved. A new "Canvas for ChatGPT" box just opened. Click Paste from clipboard and check that it says "Token entered: N characters" before clicking Save. Then ask again.');
     }
-    throw new Error('SETUP NEEDED: a box titled "Canvas for ChatGPT" just opened on your screen (check behind other windows and the taskbar). Paste your Canvas token there and click Save, then ask again. Create a token in Canvas under Account > Settings > Approved Integrations > + New Access Token. Never paste the token into the chat.');
+    throw new Error('SETUP NEEDED: a box titled "Canvas for ChatGPT" just opened on your screen (check behind other windows and the taskbar). Copy your Canvas token, click Paste from clipboard in that box, then click Save and ask again. Create a token in Canvas under Account > Settings > Approved Integrations > + New Access Token. Never paste the token into the chat.');
   }
-  throw new Error('Still waiting for your Canvas token in the "Canvas for ChatGPT" box on your screen. Paste it, click Save, then ask again.');
+  throw new Error('Still waiting for your Canvas token in the "Canvas for ChatGPT" box on your screen. Click Paste from clipboard, click Save, then ask again.');
 }
 
 // A rejected token is forgotten so the next request asks for a fresh one.
