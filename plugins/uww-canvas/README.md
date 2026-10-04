@@ -11,7 +11,7 @@ Connects Claude Desktop to UW-Whitewater Canvas (https://uwwtw.instructure.com).
 
 ## Before you install
 
-Install Node.js (the LTS version) from https://nodejs.org, then restart your computer.
+Install Node.js. On Windows, run `winget install OpenJS.NodeJS.LTS` in PowerShell (or use the LTS installer from https://nodejs.org, which is also the way on a Mac). Then fully quit and reopen Claude Desktop so it finds Node.js.
 
 ## Setup
 

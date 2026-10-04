@@ -10,9 +10,11 @@ Connects Claude Desktop to your UW-Whitewater Canvas account. Ask Claude about y
 
 ## Setup (one time, about 5 minutes)
 
-1. Install Node.js (the LTS version) from https://nodejs.org, then restart your computer.
+1. Install Node.js. On Windows, open PowerShell and run:
+   `winget install OpenJS.NodeJS.LTS`
+   Then close and reopen PowerShell and run `node -v`; it should print a version number. If winget is blocked (some school or work laptops) or you are on a Mac, download the LTS installer from https://nodejs.org instead.
 2. In Claude Desktop, open Customize > Plugins > Add marketplace, and enter: `jkatz015/uww-student-plugins`
-3. Find **uww-canvas** in the list and click Install. Then fully quit Claude (right-click its icon by the clock > Quit) and reopen it.
+3. Find **uww-canvas** in the list and click Install. Then fully quit Claude (right-click its icon by the clock > Quit) and reopen it. Claude only finds Node.js after a full restart, so do not skip this.
 4. In Canvas, go to Account > Settings > Approved Integrations > + New Access Token. Give it an expiration date (end of semester is good) and copy the token.
 5. Ask Claude: "list my Canvas courses". A box titled "Canvas for Claude" pops up. Click in it, press Ctrl+V, check that it says "Token entered: N characters", and click Save. Ask again.
 

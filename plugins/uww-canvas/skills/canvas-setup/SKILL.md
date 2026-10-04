@@ -25,7 +25,7 @@ Never ask the user to paste a Canvas token into the chat, and never accept one i
 | "Canvas rejected the token (401)" | The token was mistyped, revoked or regenerated. The connector has already forgotten it. Call any Canvas tool again and the pop-up reappears for a new token. |
 | Something seems wrong with setup | Call `canvas_setup_status` and read it to the user in plain words. It shows whether a token is loaded and saved, and what happened with the last pop-up, without revealing the token. |
 | No pop-up appears | Ask the user to check behind other windows and the taskbar. Call the tool again to reopen it. |
-| uww-canvas tools are missing entirely | Node.js is probably not installed. Tell the user to install the LTS version from nodejs.org, restart the computer, and reopen Claude. |
+| uww-canvas tools are missing entirely | Node.js is probably not installed. Tell the user to run `winget install OpenJS.NodeJS.LTS` in PowerShell (or, on a Mac or a laptop that blocks winget, use the LTS installer from nodejs.org), then fully quit and reopen Claude Desktop. |
 | User wants to switch accounts or reset their token | Windows: delete the `.canvas-mcp` folder in their user folder. Mac: open Keychain Access, search "uww-canvas" and delete it. The next Canvas request asks again. |
 | User wants submitting and posting turned off again | Tell them to delete the file `allow-write` inside the `.canvas-mcp` folder in their user folder. |
 
