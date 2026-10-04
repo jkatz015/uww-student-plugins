@@ -1,0 +1,9 @@
+{
+  "name": "uww-canvas",
+  "version": "0.2.2",
+  "description": "Connects Claude to UW-Whitewater Canvas: courses, assignments, due dates, grades, modules, discussions and files, plus submitting assignments and posting discussion replies once the student turns that on. Every submission or post needs a click on the student's own screen. Each student enters their own Canvas token in a private pop-up on first use.",
+  "author": {
+    "name": "Jonathan Katzmark"
+  },
+  "keywords": ["canvas", "uw-whitewater", "lms", "coursework"]
+}

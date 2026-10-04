@@ -1,0 +1,14 @@
+{
+  "name": "uww-student-plugins",
+  "description": "Claude plugins for UW-Whitewater students",
+  "owner": {
+    "name": "Jonathan Katzmark"
+  },
+  "plugins": [
+    {
+      "name": "uww-canvas",
+      "source": "./plugins/uww-canvas",
+      "description": "Connect Claude Desktop to your UW-Whitewater Canvas: courses, due dates, grades, files and discussions. Your token stays encrypted on your own computer."
+    }
+  ]
+}

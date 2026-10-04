@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "uww-canvas": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/server.js"],
+      "env": {
+        "CANVAS_URL": "https://uwwtw.instructure.com",
+        "CANVAS_TZ": "America/Chicago",
+        "CANVAS_ALLOW_WRITE": "false"
+      }
+    }
+  }
+}
