@@ -27,7 +27,9 @@ Publishing the template to Railway's public marketplace is optional. An unpublis
 
 - Started by `npm start` (`node plugins/uww-canvas/server/server.js --web`). The desktop plugin never runs this and never loads `server/web.js`.
 - Refuses to start, with a clear message in Deploy Logs, if `CANVAS_CONNECTOR_PASSWORD` is missing or under 16 characters, or if `CANVAS_TOKEN` or `CANVAS_URL` is missing.
-- Uses `RAILWAY_PUBLIC_DOMAIN` (set by Railway) for its public address. Set `PUBLIC_URL` only when using a custom domain.
+- Uses the domain each request arrived on as its public address, so the `*.up.railway.app` address and any custom domain both work. `PUBLIC_URL` pins one address if ever needed.
+- The sign-in key is derived from the password with scrypt at startup, so nothing the server hands out can be used to guess the password offline. Wrong passwords are limited to 10 per 15 minutes per address.
+- Codes and refresh tokens work once, tracked in memory. After a restart or sleep that list is empty, so changing the password is the way to cut off a refresh token you think was copied.
 - Read-only tools only. Submitting, posting and downloading files are left out entirely.
 - Sign-in is a small single-owner OAuth flow (registration, sign-in page, PKCE, access and refresh tokens). Tokens are signed with a key derived from the password and not stored, so they survive sleep and restarts. Changing the password signs everyone out.
 - Safe with Serverless (sleep): nothing runs in the background, so the service sleeps after about 10 minutes idle.

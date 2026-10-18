@@ -244,6 +244,28 @@ test('MCP endpoint: read-only tools, Canvas calls use the server token', async (
 
   const get = await fetch(base + '/mcp', { headers: { Authorization: `Bearer ${tokens.access_token}` } });
   assert.equal(get.status, 405);
+
+  const before = canvas.seen.length;
+  const sneaky = await (await rpc(base, tokens.access_token, { jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'canvas_get_assignment', arguments: { course_id: '../../login', assignment_id: '1' } } })).json();
+  assert.equal(sneaky.result.isError, true);
+  assert.match(sneaky.result.content[0].text, /unusual Canvas id/);
+  assert.equal(canvas.seen.length, before, 'nothing sent to Canvas');
+
+  const huge = await fetch(base + '/mcp', { method: 'POST', headers: { Authorization: `Bearer ${tokens.access_token}`, 'Content-Type': 'application/json' }, body: 'x'.repeat(2 * 1024 * 1024) });
+  assert.equal(huge.status, 413);
+});
+
+test('sign-in page names the app; wrong passwords pause sign-in', async (t) => {
+  const canvas = await fakeCanvas(t);
+  const { base } = await startWeb(t, { CANVAS_URL: canvas.url, CANVAS_TOKEN: 'fixture-token', CANVAS_CONNECTOR_PASSWORD: PASSWORD });
+  const { body: client } = await register(base);
+  const { challenge } = pkce();
+  const page = await (await fetch(`${base}/authorize?${form({ response_type: 'code', client_id: client.client_id, redirect_uri: CALLBACK, code_challenge: challenge, code_challenge_method: 'S256' })}`)).text();
+  assert.match(page, /Claude<\/span> at <span class="to">claude\.ai/);
+  assert.match(page, /clicked Connect in Claude yourself/);
+
+  for (let i = 0; i < 10; i++) assert.equal((await signIn(base, client.client_id, challenge, 'wrong-' + i)).status, 401);
+  assert.equal((await signIn(base, client.client_id, challenge)).status, 429);
 });
 
 test('sign-in survives a restart (sleep) but not a password change', async (t) => {
@@ -253,7 +275,7 @@ test('sign-in survives a restart (sleep) but not a password change', async (t) =
   const list = { jsonrpc: '2.0', id: 1, method: 'tools/list' };
 
   const first = await startWeb(t, { ...env, CANVAS_CONNECTOR_PASSWORD: PASSWORD });
-  const { tokens } = await connect(first.base);
+  const { client, tokens } = await connect(first.base);
   first.child.kill();
 
   const woke = await startWeb(t, { ...env, CANVAS_CONNECTOR_PASSWORD: PASSWORD });
@@ -262,6 +284,10 @@ test('sign-in survives a restart (sleep) but not a password change', async (t) =
 
   const rotated = await startWeb(t, { ...env, CANVAS_CONNECTOR_PASSWORD: PASSWORD + '-rotated' });
   assert.equal((await rpc(rotated.base, tokens.access_token, list)).status, 401);
+  // The old refresh token gets invalid_grant, which makes Claude sign in again.
+  const r = await fetch(rotated.base + '/token', { method: 'POST', headers: formHeaders, body: form({ grant_type: 'refresh_token', refresh_token: tokens.refresh_token, client_id: client.client_id }) });
+  assert.equal(r.status, 400);
+  assert.equal((await r.json()).error, 'invalid_grant');
 });
 
 test('desktop mode is unchanged: stdio transport with all 13 tools', async (t) => {

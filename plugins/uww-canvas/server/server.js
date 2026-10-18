@@ -275,9 +275,18 @@ const log = (...a) => console.error('[canvas-mcp]', ...a);
 
 /* ---------- Canvas REST ---------- */
 
+// Ids are pasted into API paths. Refuse anything that could step outside the
+// intended path (text inside Canvas could steer a crafted id into a tool call).
+function checkPath(p) {
+  if (String(p).split('/').some((seg) => seg === '.' || seg === '..' || /[?#\\%]/.test(seg))) {
+    throw new Error(`Refusing an unusual Canvas id in ${p}. Ids are numbers, such as 12345.`);
+  }
+}
+
 // Canvas paginates via RFC 5988 Link headers; follow rel="next" to completion.
 async function get(path, params = {}) {
   if (!CANVAS_URL) throw new Error('CANVAS_URL must be set in the MCP server env.');
+  checkPath(path);
   await ensureToken();
   const url = new URL(CANVAS_URL + '/api/v1/' + path.replace(/^\/+/, ''));
   for (const [k, v] of Object.entries(params)) {
@@ -326,6 +335,7 @@ async function write(method, path_, body) {
     throw new Error('Submitting and posting are turned off. Nothing was sent to Canvas.');
   }
   if (!CANVAS_URL) throw new Error('CANVAS_URL must be set.');
+  checkPath(path_);
   await ensureToken();
 
   const res = await fetch(CANVAS_URL + '/api/v1/' + path_.replace(/^\/+/, ''), {

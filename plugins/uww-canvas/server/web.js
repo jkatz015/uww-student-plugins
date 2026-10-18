@@ -23,7 +23,7 @@
  *   CANVAS_CONNECTOR_PASSWORD  the owner's sign-in password, at least 16 characters
  *   CANVAS_TOKEN               the owner's Canvas access token (read by server.js)
  *   PUBLIC_URL                 optional fixed address, e.g. https://canvas.example.com;
- *                              otherwise RAILWAY_PUBLIC_DOMAIN, otherwise the Host header
+ *                              otherwise the domain the request arrived on (https on Railway)
  *   CANVAS_OAUTH_REDIRECTS     optional extra allowed redirect addresses, comma separated
  */
 
@@ -38,7 +38,8 @@ const MAX_BODY = 1024 * 1024;
 // claude.ai on the web, Claude Desktop, mobile and Cowork all use this one.
 const HOSTED_CALLBACK = 'https://claude.ai/api/mcp/auth_callback';
 const LOCK_WINDOW_MS = 15 * 60 * 1000;
-const LOCK_AFTER = 10; // wrong passwords inside the window before sign-in pauses
+const LOCK_AFTER = 10;         // wrong passwords from one address inside the window
+const LOCK_AFTER_TOTAL = 200;  // from everyone together, a backstop against spread-out guessing
 
 const now = () => Math.floor(Date.now() / 1000);
 const b64u = (buf) => Buffer.from(buf).toString('base64url');
@@ -52,7 +53,10 @@ function sameText(a, b) {
 }
 
 function makeSigner(password) {
-  const key = sha256('uww-canvas-web-v1\0' + password);
+  // Slow key derivation, run once at startup: anything signed (even a client id
+  // from the open /register endpoint) must not let someone test password
+  // guesses offline at full speed. About 0.2 s and 64 MB, once per start.
+  const key = crypto.scryptSync(password, 'uww-canvas-web-v1', 32, { N: 2 ** 16, r: 8, p: 1, maxmem: 128 * 1024 * 1024 });
   const mac = (body) => crypto.createHmac('sha256', key).update(body).digest('base64url');
   return {
     sign(payload) {
@@ -88,7 +92,7 @@ function redirectAllowed(uri, extra) {
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-function signInPage({ fields, redirectHost, error }) {
+function signInPage({ fields, redirectHost, clientName, error }) {
   const hidden = Object.entries(fields)
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join('\n');
@@ -115,7 +119,8 @@ function signInPage({ fields, redirectHost, error }) {
 </style></head>
 <body><main>
 <h1>Connect your Canvas</h1>
-<p>Approving lets <span class="to">${esc(redirectHost)}</span> read your courses, due dates, grades, modules and discussions through this connector. It cannot submit or post anything.</p>
+<p>Approving lets <span class="to">${esc(clientName || 'an app')}</span> at <span class="to">${esc(redirectHost)}</span> read your courses, due dates, grades, modules and discussions through this connector. It cannot submit or post anything.</p>
+<p><strong>Only approve if you clicked Connect in Claude yourself just now.</strong> If someone sent you this link, close the page.</p>
 ${error ? `<p class="error">${esc(error)}</p>` : ''}
 <form method="post" action="/authorize">
 ${hidden}
@@ -148,8 +153,10 @@ function startWeb({ handle, log, version, canvasUrl, hasToken }) {
   const signer = makeSigner(password);
   const passwordDigest = sha256(password);
   const extraRedirects = String(process.env.CANVAS_OAUTH_REDIRECTS || '').split(',').map((s) => s.trim()).filter(Boolean);
-  const spent = new Map(); // one-time codes and rotated refresh tokens, by nonce -> expiry
-  let failures = [];       // wrong-password timestamps
+  // One-time codes and rotated refresh tokens, by nonce -> expiry. Kept in
+  // memory, so a restart forgets it; changing the password is the hard reset.
+  const spent = new Map();
+  let failures = [];       // wrong passwords: { t, ip }
 
   const markSpent = (n, exp) => {
     const t = now();
@@ -157,11 +164,20 @@ function startWeb({ handle, log, version, canvasUrl, hasToken }) {
     spent.set(n, exp);
   };
 
+  // The address Claude was given. On Railway the edge only delivers requests
+  // for domains attached to this service, so the Host header is that domain
+  // (the *.up.railway.app one or a custom one). Off Railway, plain http for
+  // local testing unless PUBLIC_URL says otherwise.
+  const ON_RAILWAY = Boolean(process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RAILWAY_ENVIRONMENT);
   function baseUrl(req) {
     if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/+$/, '');
-    if (process.env.RAILWAY_PUBLIC_DOMAIN) return 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN;
-    const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim();
-    return `${proto}://${req.headers['x-forwarded-host'] || req.headers.host}`;
+    const host = String(req.headers.host || process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost');
+    return `${ON_RAILWAY ? 'https' : 'http'}://${host}`;
+  }
+  // Railway's proxy appends the real client address as the last entry.
+  function clientIp(req) {
+    const xff = String(req.headers['x-forwarded-for'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+    return (ON_RAILWAY && xff.length ? xff[xff.length - 1] : req.socket.remoteAddress) || 'unknown';
   }
   const resourceUrl = (req) => baseUrl(req) + '/mcp';
   const metadataUrl = (req) => baseUrl(req) + '/.well-known/oauth-protected-resource';
@@ -200,10 +216,12 @@ function startWeb({ handle, log, version, canvasUrl, hasToken }) {
   function readBody(req) {
     return new Promise((resolve, reject) => {
       let size = 0;
+      let over = false;
       const chunks = [];
       req.on('data', (c) => {
+        if (over) return; // drain and drop; the 413 goes out from the catch
         size += c.length;
-        if (size > MAX_BODY) { reject(new Error('too large')); req.destroy(); return; }
+        if (size > MAX_BODY) { over = true; reject(new Error('too large')); return; }
         chunks.push(c);
       });
       req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
@@ -256,11 +274,12 @@ function startWeb({ handle, log, version, canvasUrl, hasToken }) {
     const bad = uris.find((u) => !redirectAllowed(u, extraRedirects));
     if (bad) return reply(res, 400, { error: 'invalid_redirect_uri', error_description: `Redirect address not allowed: ${bad}` }, noStore);
     const issued = now();
-    const clientId = signer.sign({ typ: 'client', r: uris, iat: issued });
+    const name = typeof body.client_name === 'string' ? body.client_name.slice(0, 60) : undefined;
+    const clientId = signer.sign({ typ: 'client', r: uris, nm: name, iat: issued });
     reply(res, 201, {
       client_id: clientId,
       client_id_issued_at: issued,
-      client_name: typeof body.client_name === 'string' ? body.client_name.slice(0, 100) : undefined,
+      client_name: name,
       redirect_uris: uris,
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
@@ -282,7 +301,7 @@ function startWeb({ handle, log, version, canvasUrl, hasToken }) {
     }
     if (q.response_type !== 'code') return { redirect, oauthError: 'unsupported_response_type' };
     if (!q.code_challenge || q.code_challenge_method !== 'S256') return { redirect, oauthError: 'invalid_request', description: 'PKCE with S256 is required.' };
-    return { redirect };
+    return { redirect, clientName: client.nm };
   }
 
   const fieldsFrom = (q, redirect) => ({
@@ -296,7 +315,7 @@ function startWeb({ handle, log, version, canvasUrl, hasToken }) {
     const c = checkAuthorize(q);
     if (c.error) return html(res, 400, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><p style="font:16px system-ui;padding:16px">${esc(c.error)}</p>`);
     if (c.oauthError) return redirectTo(res, c.redirect, { error: c.oauthError, error_description: c.description, state: q.state });
-    html(res, 200, signInPage({ fields: fieldsFrom(q, c.redirect), redirectHost: new URL(c.redirect).host }));
+    html(res, 200, signInPage({ fields: fieldsFrom(q, c.redirect), redirectHost: new URL(c.redirect).host, clientName: c.clientName }));
   }
 
   async function authorizePost(req, res) {
@@ -307,12 +326,15 @@ function startWeb({ handle, log, version, canvasUrl, hasToken }) {
     const iss = baseUrl(req);
     if (q.action !== 'approve') return redirectTo(res, c.redirect, { error: 'access_denied', state: q.state, iss });
 
-    const page = (error, status) => html(res, status, signInPage({ fields: fieldsFrom(q, c.redirect), redirectHost: new URL(c.redirect).host, error }));
+    const page = (error, status) => html(res, status, signInPage({ fields: fieldsFrom(q, c.redirect), redirectHost: new URL(c.redirect).host, clientName: c.clientName, error }));
     const t = Date.now();
-    failures = failures.filter((f) => t - f < LOCK_WINDOW_MS);
-    if (failures.length >= LOCK_AFTER) return page('Too many wrong passwords. Sign-in is paused for 15 minutes.', 429);
+    const ip = clientIp(req);
+    failures = failures.filter((f) => t - f.t < LOCK_WINDOW_MS);
+    if (failures.length >= LOCK_AFTER_TOTAL || failures.filter((f) => f.ip === ip).length >= LOCK_AFTER) {
+      return page('Too many wrong passwords. Sign-in is paused for 15 minutes.', 429);
+    }
     if (!crypto.timingSafeEqual(sha256(String(q.password || '')), passwordDigest)) {
-      failures.push(t);
+      failures.push({ t, ip });
       log('sign-in: wrong password');
       return page('That password is not right. Copy it from the Railway service Variables.', 401);
     }
@@ -336,7 +358,12 @@ function startWeb({ handle, log, version, canvasUrl, hasToken }) {
   async function token(req, res) {
     const q = await readForm(req);
     const fail = (status, error, description) => reply(res, status, { error, error_description: description }, noStore);
-    if (!signer.open(q.client_id, 'client')) return fail(401, 'invalid_client', 'Unknown client.');
+    if (!signer.open(q.client_id, 'client')) {
+      // After a password change every old client id stops verifying. For a
+      // refresh, invalid_grant is what tells Claude to start a fresh sign-in.
+      if (q.grant_type === 'refresh_token') return fail(400, 'invalid_grant', 'Sign in again.');
+      return fail(401, 'invalid_client', 'Unknown client.');
+    }
     const cKey = clientKey(q.client_id);
 
     if (q.grant_type === 'authorization_code') {
@@ -377,8 +404,9 @@ function startWeb({ handle, log, version, canvasUrl, hasToken }) {
     }
     if (req.method !== 'POST') return reply(res, 405, { error: 'Use POST.' }, { Allow: 'POST' });
 
+    const raw = await readBody(req); // a too-large body throws here and becomes a 413
     let msg;
-    try { msg = JSON.parse(await readBody(req)); } catch {
+    try { msg = JSON.parse(raw); } catch {
       return reply(res, 400, { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
     }
     const one = async (m) => {
@@ -411,12 +439,16 @@ function startWeb({ handle, log, version, canvasUrl, hasToken }) {
       return reply(res, 404, 'Not found');
     } catch (e) {
       log('request failed:', e.message);
-      if (!res.headersSent) reply(res, e.message === 'too large' ? 413 : 500, { error: 'server_error' });
+      if (e.message === 'too large' && !res.headersSent) {
+        res.on('finish', () => req.destroy());
+        return reply(res, 413, { error: 'request_too_large' }, { Connection: 'close' });
+      }
+      if (!res.headersSent) reply(res, 500, { error: 'server_error' });
       else res.end();
     }
   });
 
-  const port = Number(process.env.PORT ?? 3000);
+  const port = process.env.PORT === '0' ? 0 : Number(process.env.PORT) || 3000; // 0 = any free port (tests)
   server.listen(port, '0.0.0.0', () => {
     log(`web mode ready — listening on port ${server.address().port}, Canvas ${canvasUrl}`);
   });
