@@ -1,0 +1,14 @@
+{
+  "name": "uww-canvas-web",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Optional web mode for the UW-Whitewater Canvas plugin, for hosting on Railway as a Claude custom connector. The desktop plugins do not use this file.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node plugins/uww-canvas/server/server.js --web",
+    "test": "node --test \"tests/*.test.cjs\""
+  }
+}

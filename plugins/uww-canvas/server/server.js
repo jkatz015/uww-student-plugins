@@ -19,15 +19,22 @@
  *                      asked for it in a private pop-up box on first use)
  *   CANVAS_TZ          IANA zone for due dates (default America/Chicago)
  *   CANVAS_ALLOW_WRITE "true" pre-enables writes (each still needs an on-screen Yes)
+ *
+ * Web mode (optional, for hosting on Railway as a Claude custom connector):
+ * start with `node server.js --web` or set CANVAS_MODE=web. The server then
+ * speaks MCP over HTTP behind a sign-in (see web.js), takes the token only from
+ * CANVAS_TOKEN, and offers the read-only tools. The desktop plugin never starts
+ * in web mode and never loads web.js.
  */
 
+const WEB = (process.argv || []).includes('--web') || String(process.env.CANVAS_MODE || '').toLowerCase() === 'web';
 const CANVAS_URL = (process.env.CANVAS_URL || '').replace(/\/+$/, '');
 let CANVAS_TOKEN = (process.env.CANVAS_TOKEN || '').trim();
 const TZ = process.env.CANVAS_TZ || 'America/Chicago';
 // Master switch for the two tools that change state in Canvas. Flip this to
 // anything but "true" and submissions/replies refuse before touching the API.
 const ALLOW_WRITE = String(process.env.CANVAS_ALLOW_WRITE || '').toLowerCase() === 'true';
-const VERSION = '1.4.3-plugin';
+const VERSION = '1.5.0-plugin';
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -184,6 +191,8 @@ if ($f.ShowDialog() -eq 'OK') { [Console]::Out.Write($t.Text.Trim()) }
 
 async function ensureToken() {
   if (CANVAS_TOKEN) return CANVAS_TOKEN;
+  // A hosted server has no screen to show a pop-up on.
+  if (WEB) throw new Error('SETUP NEEDED: this web connector has no Canvas token. In Railway, open the service, go to Variables, set CANVAS_TOKEN to your Canvas access token, and redeploy.');
   const saved = await loadToken();
   if (saved) { CANVAS_TOKEN = saved; return CANVAS_TOKEN; }
 
@@ -244,6 +253,8 @@ $r = (New-Object -ComObject WScript.Shell).Popup($m, ${CONFIRM_SECONDS}, '${titl
 // Writes are off until the user turns them on with an on-screen Yes, and each
 // individual write then needs its own on-screen Yes.
 async function requireWriteApproval(summary) {
+  // Belt and braces: web mode does not even list the write tools.
+  if (WEB) throw new Error('Submitting and posting are not available in the web connector. Use the desktop plugin. Nothing was sent to Canvas.');
   const enabled = ALLOW_WRITE || fs.existsSync(WRITE_OPTIN);
   if (!enabled) {
     const yes = await confirmOnScreen('Canvas for Claude',
@@ -285,7 +296,12 @@ async function get(path, params = {}) {
       method: 'GET',
       headers: { Authorization: `Bearer ${CANVAS_TOKEN}`, Accept: 'application/json' },
     });
-    if (res.status === 401) { rejectToken(); throw new Error('Canvas rejected the token (401). It may have been mistyped, regenerated or revoked. Ask again and a pop-up will let you paste a new one.'); }
+    if (res.status === 401) {
+      rejectToken();
+      throw new Error(WEB
+        ? 'Canvas rejected the token (401). It may have expired or been revoked. Create a new token in Canvas, put it in CANVAS_TOKEN in the Railway service Variables, and redeploy.'
+        : 'Canvas rejected the token (401). It may have been mistyped, regenerated or revoked. Ask again and a pop-up will let you paste a new one.');
+    }
     if (res.status === 403) throw new Error('Canvas denied access (403) — the token lacks permission for this resource.');
     if (res.status === 404) throw new Error(`Canvas returned 404 for ${path} — check the course/assignment id.`);
     if (!res.ok) throw new Error(`Canvas HTTP ${res.status} for ${path}: ${(await res.text()).slice(0, 200)}`);
@@ -619,7 +635,12 @@ TOOLS.push({
   name: 'canvas_setup_status',
   description: 'Show the Canvas connector setup state for troubleshooting: whether a token is loaded and saved, whether submitting is turned on, and what happened with the last token pop-up. Never shows the token itself.',
   inputSchema: { type: 'object', properties: {} },
-  handler: async () => text([
+  handler: async () => text(WEB ? [
+    `Connector version ${VERSION}, web mode, process ${DIAG.pid}, started ${DIAG.started}`,
+    `Canvas address: ${CANVAS_URL || '(not set)'}`,
+    `Canvas token: ${CANVAS_TOKEN ? 'set in the server environment' : 'MISSING. Set CANVAS_TOKEN in the Railway service Variables and redeploy.'}`,
+    'Tools: read-only. Submitting, posting and downloading files are only in the desktop plugin.',
+  ].join('\n') : [
     `Connector version ${VERSION}, process ${DIAG.pid}, started ${DIAG.started}, platform ${process.platform}`,
     `Canvas address: ${CANVAS_URL || '(not set)'}`,
     `Token in memory: ${CANVAS_TOKEN ? 'yes' : 'no'}${process.env.CANVAS_TOKEN ? ' (from environment)' : ''}`,
@@ -914,9 +935,20 @@ TOOLS.push(
 
 /* ---------- JSON-RPC / MCP plumbing ---------- */
 
+// Tools that touch this computer's screen or disk, or change Canvas. A hosted
+// server has no screen to confirm on and no useful disk, so web mode leaves
+// them out entirely.
+const LOCAL_ONLY = new Set([
+  'canvas_submit_assignment', 'canvas_post_discussion_reply',
+  'canvas_download_file', 'canvas_download_course_files',
+]);
+const activeTools = () => (WEB ? TOOLS.filter((t) => !LOCAL_ONLY.has(t.name)) : TOOLS);
+
+// handle() returns the reply instead of writing it, so the same logic serves
+// both transports: stdio for the desktop plugin, HTTP for web mode.
 const send = (msg) => process.stdout.write(JSON.stringify(msg) + '\n');
-const ok = (id, result) => send({ jsonrpc: '2.0', id, result });
-const err = (id, code, message) => send({ jsonrpc: '2.0', id, error: { code, message } });
+const ok = (id, result) => ({ jsonrpc: '2.0', id, result });
+const err = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, message } });
 
 async function handle(msg) {
   const { id, method, params } = msg;
@@ -938,10 +970,10 @@ async function handle(msg) {
       return ok(id, {});
 
     case 'tools/list':
-      return ok(id, { tools: TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) });
+      return ok(id, { tools: activeTools().map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) });
 
     case 'tools/call': {
-      const tool = TOOLS.find((t) => t.name === params?.name);
+      const tool = activeTools().find((t) => t.name === params?.name);
       if (!tool) return err(id, -32602, `Unknown tool: ${params?.name}`);
       try {
         return ok(id, await tool.handler(params.arguments || {}));
@@ -952,9 +984,13 @@ async function handle(msg) {
     }
 
     default:
-      if (id !== undefined) err(id, -32601, `Method not found: ${method}`);
+      if (id !== undefined) return err(id, -32601, `Method not found: ${method}`);
   }
 }
+
+if (WEB) {
+  require('./web.js').startWeb({ handle, log, version: VERSION, canvasUrl: CANVAS_URL, hasToken: Boolean(CANVAS_TOKEN) });
+} else {
 
 let buf = '';
 let pending = 0;      // in-flight handlers
@@ -983,9 +1019,10 @@ process.stdin.on('data', (chunk) => {
     }
     pending++;
     Promise.resolve(handle(msg))
+      .then((reply) => { if (reply) send(reply); })
       .catch((e) => {
         log('handler crashed:', e.message);
-        if (msg.id !== undefined) err(msg.id, -32603, e.message);
+        if (msg.id !== undefined) send(err(msg.id, -32603, e.message));
       })
       .finally(() => {
         pending--;
@@ -999,3 +1036,5 @@ process.stdin.on('end', () => {
   exitWhenDrained();
 });
 log(`ready — ${CANVAS_URL || 'NO CANVAS_URL SET'} (tz ${TZ})`);
+
+} // end of desktop (stdio) mode

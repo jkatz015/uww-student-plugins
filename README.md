@@ -50,3 +50,38 @@ Canvas will reject it and the plugin will forget it. Create a new token in Canva
 ### Having trouble in Claude?
 
 Ask Claude for your "Canvas setup status" and send the result to Jonathan. It shows what is going on without revealing your token.
+
+## Optional: Canvas in Claude on your phone (web connector)
+
+**Skip this section unless you want it.** Nothing above changes, and the desktop plugin keeps working exactly the same whether or not you set this up.
+
+The desktop plugin only works in Claude Desktop on your own computer. The web connector is your own private copy running online, so you can ask Claude about Canvas from your phone, in voice mode, or on claude.ai in any browser. Each person runs their own copy with their own Canvas token. Jonathan does not host it and never sees your token.
+
+**What it can do:** read your courses, due dates, grades, assignment instructions, modules, discussions and announcements.
+**What it cannot do:** submit assignments, post replies or download files. Those stay in the desktop plugin, where every action needs a click on your own screen.
+
+**Cost:** it runs on Railway, which needs a paid Hobby plan. With sleep turned on (step 7), a server this small uses very little.
+
+### Set it up (one time, about 10 minutes)
+
+1. **Make a Canvas token for it.** In Canvas, go to Account > Settings > Approved Integrations > + New Access Token. Give it an expiration date (end of semester is good) and copy it. Use a new token rather than your desktop one, so you can turn either off on its own.
+2. **Deploy your copy.** Click this button, sign in to Railway, paste your token into `CANVAS_TOKEN`, leave everything else as it is, and click Deploy:
+
+   [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template/TEMPLATE_CODE?utm_medium=integration&utm_source=button&utm_campaign=uww-canvas)
+
+3. **Copy your connector address.** When the deploy finishes, open the service, go to Settings > Networking, and copy the public address. It looks like `https://something.up.railway.app`.
+4. **Copy your connector password.** In the same service, open Variables and copy `CANVAS_CONNECTOR_PASSWORD`. Railway made it for you. Keep it somewhere safe, like a password manager.
+5. **Add it to Claude.** On claude.ai in a browser, go to Settings > Connectors > Add custom connector. Name it `Canvas`, and for the address use your connector address with `/mcp` on the end, for example `https://something.up.railway.app/mcp`. Leave the advanced settings empty and click Add.
+6. **Sign in.** Click Connect. A page titled "Connect your Canvas" opens. Paste your connector password and click Approve.
+7. **Turn on sleep to save money.** In Railway, open the service, go to Settings, and turn on Serverless. It sleeps when you are not using it. The first question after a quiet stretch takes a few extra seconds; if it fails, just ask again.
+
+Now ask Claude "what's due this week?" from any device signed in to your Claude account.
+
+### Keeping it working
+
+- **Your Canvas token expired.** Make a new token in Canvas, paste it into `CANVAS_TOKEN` under the service's Variables in Railway, and let it redeploy.
+- **Lost your phone, or think someone saw your password?** Change `CANVAS_CONNECTOR_PASSWORD` in Railway to a new long random value. That signs everyone out at once. Then reconnect in Claude with the new password.
+- **Done with it?** Delete the Railway project and revoke its token in Canvas.
+- **Something wrong?** Ask Claude for your "Canvas setup status". In Railway, the service's Deploy Logs say why it did not start, for example a missing token.
+
+Anyone with your connector password could read your Canvas information, so treat it like any other password.
