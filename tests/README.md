@@ -1,6 +1,13 @@
+# Automated checks
+
+Run every check with `npm test` from the repository root. The tests use simulated Canvas responses and temporary files, not a real Canvas account.
+
+- `canvas-chatgpt.test.cjs`: the ChatGPT plugin's tools and confirmation gates (details below).
+- `canvas-web.test.cjs`: the Claude plugin's optional web mode (sign-in, tokens, the read-only tool set) and a check that its desktop mode still lists all 13 tools over stdio.
+
 # ChatGPT Canvas validation
 
-Run the automated checks with `node --test tests/canvas-chatgpt.test.cjs` from the repository root. These tests use simulated Canvas responses and temporary files, not a real Canvas account.
+Run these checks alone with `node --test tests/canvas-chatgpt.test.cjs`.
 
 ## Package 0.1.6 — October 3, 2026
 

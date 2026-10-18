@@ -40,3 +40,7 @@ Windows: delete the `.canvas-mcp` folder in your user folder. Mac: delete "uww-c
 | CANVAS_TZ | America/Chicago | Time zone for due dates |
 | CANVAS_ALLOW_WRITE | false | Leave false. Students turn writing on in an on-screen box; true skips that step, but every write still needs an on-screen Yes. |
 | CANVAS_TOKEN | (optional) | If set, used instead of the pop-up |
+
+## Optional: Canvas in Claude on your phone
+
+The same server can also run online as your own private Claude custom connector, so Canvas works from your phone and on claude.ai. It is read-only and is set up separately on Railway. See "Optional: Canvas in Claude on your phone" in the repository's main README. Nothing in this plugin changes if you skip it.
